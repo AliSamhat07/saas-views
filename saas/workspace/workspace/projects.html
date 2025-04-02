@@ -1,0 +1,162 @@
+{% extends "base.html" %}
+{% block title %} Projects {% endblock %}
+
+
+{% load static %}
+{% load crispy_forms_tags %}
+{% block content %}
+{% load tz %}
+
+<head>
+    <style>
+        .project-card {
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: 0.3s ease;
+            border-radius: 15px !important;
+        }
+        
+        .project-card:hover {
+            transform: scale(1.01);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+        }
+        
+        .project-tag {
+            font-size: small;
+            font-weight: bold;
+            border: 2px solid var(--primary);
+            background-color: var(--primary);
+            color: white;
+            border-radius: 10px;
+            padding: 2px 8px;
+        }
+        </style>
+</head>
+
+
+
+<div class="mb-3 row bg-white pt-5 pb-4">
+    <h1 class="display-3 text-center mb-4 complementary" >My Projects  </h1>
+
+
+    <div class="mx-auto px-2 d-flex justify-content-between align-items-center" style="max-width: 1400px;">
+        <!-- Search Form -->
+        <form method="get" class="mx-3 d-flex justify-content-start" action="">
+            <a 
+                    href="{% url 'workspace:projects_page' %}" 
+                    class="btn btn-shady rounded-start "
+                    style="min-width: 120px;border-radius: 0;"
+                >
+                    List All
+                </a>
+            <div class="input-group">
+                <input 
+                    type="text" 
+                    name="q" 
+                    class="form-control rounded-0" 
+                    placeholder="Search for a project" 
+                    value="{{ current_query }}" 
+                    style="min-width: 300px;"
+                >
+                <button type="submit" class="btn btn-shady">
+                    <i class="bi bi-search"></i>
+                </button>
+            </div>
+            
+        </form>
+    
+        <!-- Sorting and List All Section -->
+        <div class="d-flex align-items-center justify-content-end">
+            <!-- Sort Dropdown -->
+            <form method="get" class="me-3">
+                <div class="dropdown">
+                    <button 
+                        class="bg-shady h6 px-3 py-2 text-white rounded border-0 dropdown-toggle" 
+                        type="button" 
+                        id="dropdownMenuButton1" 
+                        data-bs-toggle="dropdown" 
+                        aria-expanded="false"
+                    >
+                        Sort By 
+                    </button>
+                    <div class="dropdown-menu dropdown-menu-end p-3" aria-labelledby="dropdownMenuButton1" style="min-width: 250px;">
+                        <!-- Sort Options -->
+                        <div class="mb-3">
+                            <label for="sort_by" class="form-label">Sort by:</label>
+                            <select name="sort_by" class="form-select" id="sort_by">
+                                <option value="title" {% if current_sort == 'title' %}selected{% endif %}>Title</option>
+                                <option value="created_at" {% if current_sort == 'created_at' %}selected{% endif %}>Creation Date</option>
+                                <option value="last_updated" {% if current_sort == 'last_updated' %}selected{% endif %}>Last Updated</option>
+                            </select>
+                        </div>
+                        <!-- Order Options -->
+                        <div class="mb-3">
+                            <label for="order" class="form-label">Order:</label>
+                            <select name="order" class="form-select" id="order">
+                                <option value="asc" {% if current_order == 'asc' %}selected{% endif %}>Ascending</option>
+                                <option value="desc" {% if current_order == 'desc' %}selected{% endif %}>Descending</option>
+                            </select>
+                        </div>
+                        <!-- Apply Button -->
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary">Apply</button>
+                        </div>
+                    </div>
+                </div>
+            </form>
+    
+           
+        </div>
+    </div>
+    
+</div>
+
+
+<div class="mx-auto px-2 mt-5" style="max-width:1400px;">
+    
+    <div class="d-flex justify-content-between flex-wrap pb-5">
+        {% for project in projects %}
+        <a class="card d-flex flex-row rounded project-card m-3" 
+   style="max-width: 600px; min-width: 500px; text-decoration: none !important; overflow: hidden;" 
+   href="{% url 'workspace:project_detail' project.slug %}">
+
+    <!-- Image Section -->
+    <div style="flex: 1; max-width: 50%; min-width: 50%;">
+        <img src="{% if project.thumbnail %}{{ project.thumbnail }}{% else %}{% static 'img/globe.png' %}{% endif %}" 
+             alt="..." 
+             style="width: 100%; height: 100%; object-fit: cover; border-radius: 15px 0 0 15px;">
+    </div>
+
+    <!-- Details Section -->
+    <div style="flex: 1; padding: 15px; color: black;">
+        <h4 class="mb-3" style="font-size: 1.7em; font-family: Poppins; font-weight: 600;">
+            {{ project.title }}
+        </h4>
+        <hr>
+        <p class="mb-3" style="font-family: Poppins; font-weight: 600;">
+            {{ project.solution.name }}
+        </p>
+        <p class="mb-2">
+            <span>{{ project.system_modification_date|date:"d F Y H:i" }} GMT</span>
+        </p>
+        <p class="mb-3">
+            <strong>Number of Processes:</strong> {{ project.processes_number }}
+        </p>
+        <div class="d-flex flex-wrap gap-2">
+            {% for tag in project.tags.all %}
+                <span class="badge bg-secondary">{{ tag }}</span>
+            {% endfor %}
+        </div>
+    </div>
+</a>
+
+     
+        {% endfor %}
+    </div>
+
+
+</div>
+
+
+
+
+{% endblock %}

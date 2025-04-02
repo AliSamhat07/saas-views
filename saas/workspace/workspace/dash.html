@@ -1,0 +1,244 @@
+{% extends "base.html" %} {% block title %} Sass Project {% endblock %}
+{% load static %} {% block head %}
+<!-- Map Card -->
+
+<script src="https://api.mapbox.com/mapbox-gl-js/v3.4.0/mapbox-gl.js"></script>
+<link href="https://api.mapbox.com/mapbox-gl-js/v3.4.0/mapbox-gl.css" rel="stylesheet" />
+<script src="https://unpkg.com/@turf/turf@6/turf.min.js"></script>
+<script src="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-draw/v1.4.3/mapbox-gl-draw.js"></script>
+<link rel="stylesheet" href="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-draw/v1.4.3/mapbox-gl-draw.css"
+    type="text/css" />
+<script src="https://unpkg.com/supercluster@8.0.0/dist/supercluster.min.js"></script>
+
+<!-- proj4 -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/proj4js/2.7.5/proj4.js"></script>
+<!-- geotiff -->
+<script src="https://cdn.jsdelivr.net/npm/geotiff@2.1.3/dist-browser/geotiff.min.js"></script>
+
+<script defer src="https://unpkg.com/shpjs@latest/dist/shp.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.7.1/jszip.min.js"></script>
+
+<script src="{% static 'js/bundle.js' %}"></script>
+<link rel="stylesheet" href="{% static 'css/dash.css' %}">
+
+<script src="{% static 'js/geo.js' %}"></script>
+
+
+
+
+<!-- Map Card -->
+{% endblock %}
+
+
+{% block content %}
+
+
+
+<div class="row p-0 m-0 w-100 " >
+    <div class="col-md-3  "> 
+        <h1 class=" m-4 ms-0 dark">Dashboard Page</h1>
+        <p class="ms-0 ">Interact with All your project processes at one map.</p>
+        {% for p_and_p in projects_with_active_processes %}
+<div class="aqua my-2 bg-dark rounded py-1">
+    <div class="row p-1 m-1 expandable-div collapsed" data-bs-toggle="collapse" href="#process_list{{p_and_p.project.id}}">
+        <h4 class="m-1 mt-2">
+            {{p_and_p.project.title}}
+            <i class="bi bi-chevron-up float-end down-icon"></i> <!-- Bootstrap chevron-down icon -->
+        </h4>
+    </div>
+    <div class="w-100">
+        <div class="collapse" id="process_list{{p_and_p.project.id}}">
+            <hr class="">
+            {% for process in p_and_p.active_processes.all %}
+
+            <div class="card m-3 border-0 complementary">
+                <div class="row g-0">
+                    <div class="col-md-4 rounded-start" style="background-image: url('{{MEDIA_PREFIX}}{{ process.thumbnail }}');">
+                    </div>
+                    <div class="col-md-8">
+                        <div class="card-body">
+                            <h5 class="card-title h5"> {{process.name}}</h5>
+
+                            <div class="process-card-row mt-3 ml-3" style="gap: 2em;">
+                                <span class="h6"> 
+                                    <i class="bi bi-calendar"></i> 
+                                    <span id="processDate"> 
+                                        {{process.system_registration_date|date:"d F Y H:i" }}
+                                    </span> (GMT)
+                                </span><br>
+                                <span class="h6">
+                                    <i class="bi bi-heptagon"></i> 
+                                    <span id="processArea">{{process.data_set.area}}</span> km<sup>2</sup>
+                                </span><br>
+                                <span class="h6">
+                                    <i class="bi bi-coin"></i> 
+                                    <span id="processAmount">{{process.fees}}</span> $
+                                </span><br>
+                            </div>
+                            {% if process.situation == 'is' %}
+                            <div class="d-flex justify-content-end w-100">
+                                <button class="btn btn-transparent" onclick="toggle_process_visibility(this, {{process.id}})">
+                                    <i class="bi-eye-slash opp h4"></i>
+                                </button>
+                                <button class="btn btn-transparent" onclick="zoom_into({{process.id}})">
+                                    <i class="bi bi-search  h4"></i>
+                                </button>
+                            </div>
+                            {% else %}
+                            <p class="card-text">
+                                <small class="text-muted">Process Unfinished Yet...</small>
+                            </p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endfor %}
+
+
+    </div>
+    <div class="col-md-9 p-0 m-0">                
+        <div id="main_cards_body" style="height: 100vh;""  class="w-100 h-100 m-0 p-0">
+        </div>
+</div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    GeoDataHandler.loadProjections(url = '{% static "js/projections.json" %}')
+
+    Mappy.setToken("pk.eyJ1IjoibWhkMTIzbXN3aSIsImEiOiJjamp0azg5OHAyaGIxM3Fvbjc0b3pvZ2VpIn0.vmB_VWu_ewHeNBtoEtdt7Q");
+    card = new Dashboard("", "", "main_cards_body", {
+      container: 'map1',
+      style: 'mapbox://styles/mapbox/satellite-streets-v12',
+      center: [36, 34],
+      zoom: 2
+    });
+    card.style = {
+      polygons_fill_color: "#fbb03b",
+      polygons_fill_opacity: 0.1,
+      line_color: "#fbb03b",
+      line_width: 3,
+      text_size: 12,
+      text_color: "#fbb03b",
+      marker_color: "#FFFFFF",
+      marker_scale: 0.2,
+      circle_radius: 5,
+      circle_color: "#FF0000",
+    };
+
+
+    card.printCard(cardDiv_class = 'card border-0 w-100 h-100 p-0', map_height = "100%");
+    card.addClear()
+    card.loadMap();
+    card.addFullScreen();
+    card.addNavigation()
+    card.addScale()
+    card.addStyleSelector()
+    card.addGeoLocator()
+    card.addDrawing(polygon = true, point = false, line_string = false, rectangle = true, trash = false, modify = false)
+
+    card.aoi_select_event()
+
+});
+
+async function zoom_into(processId) {
+    var results = await fetch_process(processId)
+
+    
+    console.log(results.aoi_coordinates)
+    card.zoom_into_polygon_coordinates(results.aoi_coordinates)
+
+
+
+}
+
+function toggle_process_visibility(button, processId) {
+    const icon = button.querySelector('i'); // Find the <i> icon inside the button
+
+    if (icon.classList.contains('bi-eye')) {
+        // Currently visible, toggle to hidden
+        icon.classList.remove('bi-eye');
+        icon.classList.remove('primary');
+
+        icon.classList.add('bi-eye-slash');
+        icon.classList.add('opp');
+        hide_process(processId); // Call the hide function
+    } else {
+        // Currently hidden, toggle to visible
+        icon.classList.remove('bi-eye-slash');
+        icon.classList.remove('opp');
+        icon.classList.add('bi-eye');
+        icon.classList.add('primary');
+
+        result_process(processId); // Call the show function
+    }
+}
+
+async function fetch_process(id) {
+      var link = `/projects/${id}/process/`;
+      var response = await fetch(link);
+      this.details = await response.json();
+      var createDate = new Date(this.details.create_date);
+      this.details.create_date = createDate.toLocaleString('en-UK', {
+        year: 'numeric',
+        month: 'numeric',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+
+      });
+      console.log(this.details)
+      return this.details
+    }
+
+  async function result_process(processId) {
+    var results = await fetch_process(processId)
+    style = {
+      polygons_fill_color: "#fbb03b",
+      polygons_fill_opacity: 0.8,
+      line_color: "#fbb03b",
+      line_width: 3,
+      text_size: 12,
+      text_color: "#fbb03b",
+      marker_color: "#FFFFFF",
+      marker_scale: 0.2,
+      circle_radius: 5,
+      circle_color: "#FF0000",
+    };
+    
+    console.log(results.result_file)
+    card.AddPolygon(results.aoi_coordinates,results.name+results.id,true)
+    card.link_import(results.result_file, style,prefix=results.name+results.id)
+    card.add_tms_tiles(results.dataset_tiles_path+'{z}/{x}/{y}.png', results.dataset_tiles_path+'tilemapresource.xml',results.name+results.id)
+
+
+  }
+  async function hide_process(processId){
+    var results = await fetch_process(processId)
+    var prefix = results.name+results.id;
+    array = ["tms-layer","tms-tiles","geojson-layer","geojson-source","-layer","-outline","-label","polygons-layer","polygons-source"]
+    array.forEach(element => {
+        console.log(prefix+element)
+        card.remove_data(prefix+element);
+    });
+    // prefix + "tms-layer"
+    // prefix + "tms-tiles"
+    // this.remove_data(prefix + "geojson-layer");
+    // this.remove_data(prefix + "geojson-source");
+    // name + "-layer"
+    // name + "-outline"
+    // name + "-label"
+    // card.remove_data('{{process.name}}tms-layer');
+
+  }
+</script>
+
+
+
+{% endblock %}

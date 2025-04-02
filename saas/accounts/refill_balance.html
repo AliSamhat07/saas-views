@@ -1,0 +1,36 @@
+{% extends "account.html" %}
+{% load static %} {% load crispy_forms_tags %}
+{% block title %}Refill Balance{% endblock %}  
+{% block subpage_content %}
+    <div class="container  d-flex flex-column" style="gap: 5em;">
+      <div class="main-account-container px-4 px-sm-5">
+        <h2 class="main-header">Refill Balance</h2>
+        <div class="mb-4">{% crispy form %}</div>
+      </div>
+
+      <div class="main-account-container px-sm-5">
+        <h2 class="main-header">Bill History</h2>
+        <div>{% crispy bill_history_form %}</div>
+        <table class="table table-custom-padding mt-5 info-container">
+          <thead>
+              <tr>
+                  <th scope="col">Amount</th>
+                  <th scope="col">Date</th>
+                  <th scope="col"> Is Payed </th>
+              </tr>
+          </thead>
+          <tbody>
+              {% for bill in bill_history %}
+                  <tr>
+                      <td>{{ bill.amount }}</td>
+                      <td>{{ bill.date }}</td>
+                      <td> {{bill.bill.payed}}</td>
+                  </tr>
+              {% endfor %}
+          </tbody>
+      </table>
+      </div>
+    </div>
+
+
+{% endblock %}

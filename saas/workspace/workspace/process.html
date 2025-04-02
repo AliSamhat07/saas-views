@@ -1,0 +1,443 @@
+{% extends "base.html" %} {% block title %} Sass Project {% endblock %}
+{% load static %} {% load crispy_forms_tags %} {% block head %}
+<!-- Map Card -->
+
+<script src="https://api.mapbox.com/mapbox-gl-js/v3.4.0/mapbox-gl.js"></script>
+<link href="https://api.mapbox.com/mapbox-gl-js/v3.4.0/mapbox-gl.css" rel="stylesheet" />
+<script src="https://unpkg.com/@turf/turf@6/turf.min.js"></script>
+<script src="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-draw/v1.4.3/mapbox-gl-draw.js"></script>
+<link rel="stylesheet" href="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-draw/v1.4.3/mapbox-gl-draw.css"
+  type="text/css" />
+<script src="https://unpkg.com/supercluster@8.0.0/dist/supercluster.min.js"></script>
+
+<!-- proj4 -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/proj4js/2.7.5/proj4.js"></script>
+<!-- geotiff -->
+<script src="https://cdn.jsdelivr.net/npm/geotiff@2.1.3/dist-browser/geotiff.min.js"></script>
+
+<script defer src="https://unpkg.com/shpjs@latest/dist/shp.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.7.1/jszip.min.js"></script>
+
+<script src="{% static 'js/bundle.js' %}"></script>
+<script src="{% static 'js/geo.js' %}"></script>
+<script>
+  function hide_poly(poly_name) {
+    card.remove_data(poly_name + "-layer");
+    card.remove_data(poly_name + "-outline");
+    card.remove_data(poly_name + "-label");
+    card.remove_data(poly_name + "");
+  }
+</script>
+<link rel="stylesheet" href="{% static 'css/process.css' %}">
+<!-- Map Card -->
+{% endblock %}
+
+{% block content %}
+{% crispy form %} 
+
+
+
+
+
+
+<div class="toast-container position-fixed top-0 start-50 translate-middle mt-5 p-3">
+  <div id="DrawToast" class="toast align-items-center bg-opp text-white border-0 mt-5 w-100" role="alert" aria-live="assertive" aria-atomic="true">
+    <div class="d-flex">
+
+    <div class="toast-body" >
+      Drawing mode: Place points on the map to draw an area of interest. Connect the last point to the first to finish the shape.
+    </div>
+    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+
+
+  </div>
+  </div>
+
+</div>
+<div class="toast-container position-fixed bottom-0 end-0 p-3">
+  <div id="liveToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+
+  </div>
+
+  <div id="dataset_toast" class="toast " role="alert" aria-live="assertive" aria-atomic="true">
+
+  </div>
+</div>
+
+<div class="modal fade" id="videoHelpModal" tabindex="-1" aria-labelledby="videoHelpModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="videoHelpModalLabel">Help Video</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body text-center">
+        <!-- Video -->
+        <video controls class="w-100 rounded">
+          <source src="{% static 'video/draw.mp4' %}" type="video/mp4">
+          Your browser does not support the video tag.
+        </video>
+      </div>
+    </div>
+  </div>
+</div>
+<script type="text/javascript">
+
+document.getElementById('elformo').addEventListener('submit', function(event) {
+    event.preventDefault();  // Prevents the form from submitting immediately
+    const submitBtn = document.getElementById('submitBtn');
+    submitBtn.disabled = true;
+    submitBtn.innerText = 'Submitting...';  // Optional feedback text
+
+    // Submit the form programmatically after disabling the button
+    HTMLFormElement.prototype.submit.call(this);
+});
+
+
+  // UI Management
+  //----------------------------------------------//----------------------------------------------//----------------------------------------------//----------------------------------------------//----------------------------------------------//----------------------------------------------//----------------------------------------------//----------------------------------------------
+
+ // Selected dataset
+  var selected_dataset = ""
+  document.addEventListener('DOMContentLoaded', function () {
+    var collapseElements = document.querySelectorAll('.collapse');
+    collapseElements.forEach(function (collapseEl) {
+      collapseEl.addEventListener('show.bs.collapse', function (e) {
+        var toggleButton = document.querySelector(`[href="#${collapseEl.id}"]`);
+        if (toggleButton) {
+          toggleButton.classList.add('btn-opp');
+          toggleButton.classList.remove('btn-shady');
+          set_dataset_choice(toggleButton.getAttribute('dataset'))
+        }
+      });
+      collapseEl.addEventListener('hide.bs.collapse', function () {
+        var toggleButton = document.querySelector(`[href="#${collapseEl.id}"]`);
+        if (toggleButton) {
+          toggleButton.classList.remove('btn-opp');
+          toggleButton.classList.add('btn-shady');
+
+          if (selected_dataset == toggleButton.getAttribute('dataset')) {
+            selected_dataset = ""
+          }
+        }
+      });
+    });
+  });
+
+  document.querySelectorAll('.collapse').forEach(collapse => {
+    collapse.addEventListener('show.bs.collapse', function () {
+      const showingCollapses = document.querySelectorAll('.collapse.show');
+      showingCollapses.forEach(collapseDiv => {
+        const otherCollapse = bootstrap.Collapse.getInstance(collapseDiv) || bootstrap.Collapse.getOrCreateInstance(collapseDiv);
+        if (collapseDiv.id !== otherCollapse.id) {
+          otherCollapse.hide();
+        }
+      });
+    });
+  });
+  // Scroll on clicking 
+  function set_dataset_choice(value) {
+    document.getElementById("id_dataset_choice").value = value
+  }
+
+  
+  //----------------------------------------------//----------------------------------------------//----------------------------------------------//----------------------------------------------//----------------------------------------------//----------------------------------------------//----------------------------------------------//----------------------------------------------
+  // Price Estimation before paying 
+
+
+
+
+  //----------------------------------------------//----------------------------------------------//----------------------------------------------//----------------------------------------------//----------------------------------------------//----------------------------------------------//----------------------------------------------//----------------------------------------------
+  // Map 
+  document.addEventListener('DOMContentLoaded', function () {
+    GeoDataHandler.loadProjections(url = '{% static "js/projections.json" %}')
+
+    Mappy.setToken("pk.eyJ1IjoibWhkMTIzbXN3aSIsImEiOiJjamp0azg5OHAyaGIxM3Fvbjc0b3pvZ2VpIn0.vmB_VWu_ewHeNBtoEtdt7Q");
+    card = new Dashboard("", "", "main_cards_body", {
+      container: 'map1',
+      style: 'mapbox://styles/mapbox/satellite-streets-v12',
+      center: [0, 0],
+      zoom: 2
+    });
+    card.style = {
+      polygons_fill_color: "#fbb03b",
+      polygons_fill_opacity: 0.1,
+      line_color: "#fbb03b",
+      line_width: 3,
+      text_size: 12,
+      text_color: "#fbb03b",
+      marker_color: "#FFFFFF",
+      marker_scale: 0.2,
+      circle_radius: 5,
+      circle_color: "#FF0000",
+    };
+
+
+    card.printCard(cardDiv_class = 'card border-0 w-100 h-100 p-0', map_height = "100%");
+    card.addClear()
+    card.loadMap();
+    card.addFullScreen();
+    card.addNavigation()
+    card.addScale()
+    card.addStyleSelector()
+    card.addGeoLocator()
+    card.addDrawing(polygon = true, point = false, line_string = false, rectangle = true, trash = false, modify = false)
+
+    card.aoi_select_event()
+
+
+    card.map.on("draw.modechange", (e) => {
+      console.log(e)
+      if(e.mode == "draw_polygon"){
+
+        const draw_toast = document.getElementById('DrawToast');
+  const drawtoastBootstrap = new bootstrap.Toast(draw_toast, {
+  delay: 10000 // 10000ms = 10 seconds
+    });
+
+
+  drawtoastBootstrap.show();
+      }
+    })
+
+    // Price estimation
+    document.addEventListener('aoi_selected', function (e) {
+          // Retrieve the relevant button or collapse element (e.g., using data passed with the event)
+    const datasetId = 1; // Assuming the event includes `datasetId`
+    const button = document.querySelector(`[dataset="${datasetId}"]`);
+    
+    if (button) {
+      const collapseId = button.getAttribute('href')?.slice(1); // Get the ID of the collapse element
+      const collapseEl = document.getElementById(collapseId);
+
+      if (collapseEl && !collapseEl.classList.contains('show')) {
+        // Use Bootstrap's Collapse methods to open the element
+        const collapseInstance = new bootstrap.Collapse(collapseEl, { show: true });
+      }
+    }
+    card.remove_all_except_last_draw()
+    });
+      
+    document.addEventListener('aoi_selected', function (e) {
+      var solution_dollar_per_kmsq = {{ project.solution.dollar_per_km2 }}
+      var price = Math.ceil(solution_dollar_per_kmsq * e.detail.area)
+    var balance = {{ user.balance.first.amount|floatformat:2 }}
+      if (price < 1 && price > 0) { price = 1 }
+
+  const price_toast = document.getElementById('liveToast');
+  const toastBootstrap = new bootstrap.Toast(price_toast, {
+  delay: 10000 // 10000ms = 10 seconds
+    });
+  var submit = document.getElementsByName("submit")[0]
+
+  if (price > balance || price ==0) {
+    submit.disabled = true; 
+    var toast_content = `
+  <div class="toast-header">
+      <strong class="me-auto text-warning">Warning</strong>
+      <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+    </div>
+    <div class="toast-body">
+      The Estimated Price is : <span class="text-warning"> ${price} $</span> <br>
+      Estimated Fees are much more than your current balance, consider refiling to run the process afterward
+    </div>
+  `
+
+  } else {
+    submit.disabled = false; 
+
+var toast_content = `
+  <div class="toast-header">
+      <strong class="me-auto text-info">Price Estimation </strong>
+      <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+    </div>
+    <div class="toast-body">
+      The Estimated Price is : <span class="text-info"> ${price} $</span>
+    </div>
+  `
+  }
+  price_estimation_div= document.getElementById('price_estimation_div')
+  price_estimation_div.innerHTML = `
+  <h4 class="text-center"><span class="badge bg-opp text-white">The Estimated Price is: ${price} $</span></h4>
+  `;
+  
+  price_toast.innerHTML = toast_content
+  toastBootstrap.show();
+  //card.dispaly_html(`<span class="bg-light rounded mt-3 p-2 h6">The Estimated Price will be :  ${price} $</span>`)
+    // e.detail will contain the type ('create' or 'selectionchange') and features
+});
+  if (document.getElementById("id_limgc_new_dataset_link")) {
+    card.input_link_to_preview(
+      url_input = "id_limgc_new_dataset_link",
+      button_id = "limgc_download_preview",
+      coordinates_input = "id_l_dataset_coordinates_text",
+      file_size_container = "limgc_file_size_content",
+      zoom_in = true
+    )
+  }
+  if (document.getElementById("id_ltiff_new_dataset_link")) {
+    card.input_link_to_preview(
+      url_input = "id_ltiff_new_dataset_link",
+      button_id = "ltiff_download_preview",
+      coordinates_input = "",
+      file_size_container = "ltiff_file_size_content",
+      zoom_in = true
+    )
+  }
+
+  if (document.getElementById("uimgc_file_visualizer")) {
+    card.button_raster_visualizer(button_id = "uimgc_file_visualizer", file_input_id = 'id_uimgc_new_dataset_file', coordinates_input = "id_u_dataset_coordinates_text", zoom_in = true)
+  }
+  if (document.getElementById("utiff_file_visualizer")) {
+    card.on_change_raster_visualizer( file_input_id = 'id_utiff_new_dataset_file', coordinates_input = "", zoom_in = true)
+  }
+  // file size
+  // handle Geometry
+  if (document.getElementById("geojsonfile")) {
+    card.file_polygon_input(file_id = "geojsonfile", poly_text_id = 'id_aoi_text', zoom_in = true)
+    card.AddPolygonInput(text_id = "id_aoi_text", zoom_in = true)
+  }
+
+
+  //----------------------------------------------//----------------------------------------------//----------------------------------------------//----------------------------------------------//----------------------------------------------//----------------------------------------------//----------------------------------------------//----------------------------------------------
+  // ALi Kanbar Task
+  var newProcessButtonEnabled = true;
+  const createNewProcessButton = document.getElementById("submit-id-submit");
+  const datasetChoice = document.getElementById("id_dataset_choice");
+  const linkImageCoordinates = document.getElementById("id_l_dataset_coordinates_text");
+  const uploadImageCoordinates = document.getElementById("id_u_dataset_coordinates_text");
+
+  function isNumeric(value) {
+    return typeof value === 'number' && isFinite(value);
+  }
+
+  function isArray(input) {
+    try {
+      const parsed = JSON.parse(input);
+      return Array.isArray(parsed);
+    }
+    catch (e) {
+      if (Array.isArray(input)) {
+        return true;
+      }
+      return false;
+    }
+  }
+  function arraysAreEqual(arr1, arr2) {
+    if (arr1.length !== arr2.length) return false;
+    for (let i = 0; i < arr1.length; i++) {
+      if (arr1[i] !== arr2[i]) return false;
+    }
+    return true;
+  }
+
+  function isBoundingBoxOrPolygon(coords) {
+    if (datasetChoice.value === "3" || datasetChoice.value == "5") {
+      text = coords.value;
+      try {
+        //  textAsArray = JSON.parse(text);
+        //  const isBoundingBox = textAsArray.length === 4 && textAsArray.every(isNumeric) && 
+        //                          textAsArray[0] < textAsArray[2] &&  textAsArray[1] < textAsArray[3];
+        //  const isPolygon = textAsArray.length === 3 && textAsArray.every(
+        //                                                  (pair) =>
+        //                                                      isArray(pair) &&
+        //                                                      pair.length === 2 &&
+        //                                                      isNumeric(pair[0]) &&
+        //                                                      isNumeric(pair[1])
+        //                                                      );
+        //  const isValidFormat = isBoundingBox || isPolygon;
+        //  if (isValidFormat)
+        //  {
+        //    createNewProcessButton.disabled = false;
+        //    newProcessButtonEnabled = true
+        //  }
+        //  else
+        //  {
+        //    createNewProcessButton.disabled = true;
+        //    newProcessButtonEnabled = false
+        //  }
+
+        const bboxRegex = /^\[\+?\-?\d+(\.\d+)?(,\+?\-?\d+(\.\d+)?){3}\]$/;
+        const isBoundingBox = bboxRegex.test(text)
+        const polygon = /^\[\[\+?\-?\d+(\.\d+)?\,\+?\-?\d+(\.\d+)?\](\,\[\+?\-?\d+(\.\d+)?\,\+?\-?\d+(\.\d+)?\])*\]$/;
+        const textAsArray = JSON.parse(text)
+        const isPolygon = polygon.test(text) && textAsArray.length > 3 && arraysAreEqual(textAsArray[0], textAsArray.at(-1))
+        if (isPolygon || isBoundingBox) {
+          createNewProcessButton.disabled = false;
+          newProcessButtonEnabled = true
+          if (isPolygon) {
+            const xValues = textAsArray.map(point => point[0]);
+            const yValues = textAsArray.map(point => point[1]);
+
+            const xmin = Math.min(...xValues);
+            const xmax = Math.max(...xValues);
+            const ymin = Math.min(...yValues);
+            const ymax = Math.max(...yValues);
+
+            console.log("xmin:", xmin, "xmax:", xmax, "ymin:", ymin, "ymax:", ymax);
+          }
+        }
+        else {
+          createNewProcessButton.disabled = true;
+          newProcessButtonEnabled = false
+        }
+      }
+      catch (e) {
+        createNewProcessButton.disabled = true;
+        newProcessButtonEnabled = false
+      }
+    }
+  }
+
+  linkImageCoordinates.addEventListener("input", () => {
+    isBoundingBoxOrPolygon(linkImageCoordinates);
+  });
+
+  uploadImageCoordinates.addEventListener("input", () => {
+    isBoundingBoxOrPolygon(uploadImageCoordinates);
+  });
+
+  // Dataset Choices Buttons management
+  //----------------------------------------------//----------------------------------------------//----------------------------------------------//----------------------------------------------//----------------------------------------------//----------------------------------------------//----------------------------------------------//----------------------------------------------
+
+  // datasetChoice.addEventListener("change", () => {
+  //   if (datasetChoice.value != "3" && datasetChoice.value != "5" && newProcessButtonEnabled === false) {
+  //     newProcessButtonEnabled = true
+  //     createNewProcessButton.disabled = false
+  //   }
+  //   else if ((datasetChoice.value === "3" || datasetChoice.value === "5") && newProcessButtonEnabled === true) {
+  //     if (datasetChoice.value === "3") {
+  //       isBoundingBoxOrPolygon(linkImageCoordinates);
+  //     }
+  //     else {
+  //       isBoundingBoxOrPolygon(uploadImageCoordinates);
+  //     }
+  //   }
+  // })
+
+  // const thirdDatasetChoice = document.querySelector("#sidePanel > div:nth-child(2) > fieldset > div:nth-child(3) > :nth-child(3)")
+  // const fifthDatasetChoice = document.querySelector("#sidePanel > div:nth-child(2) > fieldset > div:nth-child(3) > :nth-child(5)")
+  // thirdDatasetChoice.addEventListener("click", () => {
+  //   isBoundingBoxOrPolygon(linkImageCoordinates);
+  // });
+  // fifthDatasetChoice.addEventListener("click", () => {
+  //   isBoundingBoxOrPolygon(uploadImageCoordinates);
+  // });
+
+  // const buttons = document.querySelectorAll(
+  //   "#sidePanel > div:nth-child(2) > fieldset > div:nth-child(3) > div:nth-child(n+2):nth-child(-n+6):not(:nth-child(3)):not(:nth-child(5))"
+  // );
+  // buttons.forEach((button) => {
+  //   button.addEventListener("click", () => {
+  //     newProcessButtonEnabled = true;
+  //     createNewProcessButton.disabled = false;
+  //   });
+  // })
+
+ 
+  });
+
+ 
+</script>
+
+{% endblock %}

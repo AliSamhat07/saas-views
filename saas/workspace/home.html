@@ -1,0 +1,90 @@
+{% extends "base.html" %} 
+{% block title %} Home {% endblock %}
+{% load static %} 
+{% load crispy_forms_tags %} 
+{% block content %}
+{% load tz %} 
+<style>
+    .mainuim {
+        margin: 0;
+        padding: 0;
+        height: 100vh;
+        background: url('{% static "img/bg/3.jpg" %}') no-repeat center center/cover;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .card {
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+        border-radius: 10px;
+        width: 100%;
+        max-width: 400px;
+    }
+    .g-recaptcha{
+        border: 0;
+        padding: 0;
+    }
+
+
+</style>
+
+<div class="mainuim w-100 h-100">
+    <div class="" style="min-width: 350px;">
+        <div class="w-100 text-center">
+            <img src="{% static 'img/logo_white_R.png' %}" class="mb-1" style=" height: 160px;margin-top: -60px;" alt="Logo" />
+
+        </div>
+        <div class="card p-4">
+            <div class="card-body p-0">
+                    <!-- Login Form -->
+                    <div class="" id="login-form" style="display: block;">
+    
+                        {% crispy login_form %}
+                        <div class="w-100 mt-3">
+                            <a href="{% url 'accounts:google_oauth' %}" class="btn bsb-btn-xl w-100 btn-dark py-2">
+                                <img src="{% static 'img/google.webp' %}"  height="20" class="mb-1">
+    
+                                <span class="ms-1 ">Log in with Google</span>
+                            </a>
+                        </div>
+                        <div class="mt-5">
+                            <button class="btn btn-link" id="switch-to-signup">Don't have an account? Sign Up</button>
+                            <div class="mx-1">
+                                <a href="{% url 'accounts:forgot_pw'%}" class="m-2"> Forget your Password ? </a> 
+                            </div>
+    
+                        </div>
+                    </div>
+    
+                    <div class="col-1"></div>
+    
+                    <!-- Sign-Up Form -->
+                    <div class="" id="signup-form" style="display: none;">
+    
+                        {% crispy register_form %}
+                        <div class="w-100 mt-3">
+                            <a href="{% url 'accounts:google_oauth' %}" class="btn bsb-btn-xl w-100 btn-dark py-2">
+                                <img src="{% static 'img/google.webp' %}"  height="20" class="mb-1">
+    
+                                <span class="ms-1 ">Sign up with Google</span>
+                            </a>
+                        </div>
+                        <button class="btn btn-link mt-5" id="switch-to-login">Already have an account? Login</button>
+                    </div>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+    document.getElementById('switch-to-signup').addEventListener('click', function () {
+        document.getElementById('login-form').style.display = 'none';
+        document.getElementById('signup-form').style.display = 'block';
+    });
+
+    document.getElementById('switch-to-login').addEventListener('click', function () {
+        document.getElementById('signup-form').style.display = 'none';
+        document.getElementById('login-form').style.display = 'block';
+    });
+</script>
+{% endblock %}

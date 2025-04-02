@@ -1,0 +1,266 @@
+{% extends "base.html" %} {% block title %} Sass Project {% endblock %}
+{% load crispy_forms_tags %}
+{% load static %}
+
+{% block content %}
+{% load tz %}
+
+<div class=" mx-auto" style="max-width: 1200px;">
+    <div class="card w-100 mt-4">
+        <div style="max-height:400px;width:100% ; overflow : hidden;">
+            <img class="card-img-top " src="{{solution.image.url}}" alt="...">
+        </div>
+        <div class="card-body mx-5 ">
+            <div class="d-flex align-items-center justify-content-between">
+                <h5 class="card-title pt-5 pb-3" style="font-size: 2.25em;font-family: Lato;font-weight: 800;">
+                    {{solution.name}}</h5>
+            </div>
+            <div>
+                <div class="card-text pb-3"
+                    style="font-size: 1.2em;font-family: Lato;font-weight: 600; ">
+                    {{solution.description|safe}}</div>
+            </div>
+{% if user.is_authenticated %}
+
+            <!-- Button trigger modal -->
+            <button type="button" class="btn btn-lg w-100 btn-primary" data-bs-toggle="modal" data-bs-target="#createprojectmodal">
+                Create Your Project 
+            </button>
+
+            {% endif %}
+
+        </div>
+
+    </div>
+
+{% if user.is_authenticated %}
+    <!-- Modal -->
+<!-- Main Modal for Creating Project -->
+<div class="modal fade" id="createprojectmodal" tabindex="-1" aria-labelledby="createprojectmodalLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h1 class="modal-title fs-5" id="createprojectmodalLabel">{{ solution.name }} Project</h1>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+
+                {% crispy add_project_form %}
+                
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- New Tag Creation Modal -->
+<div class="modal fade" id="createtagmodal" tabindex="-1" aria-labelledby="createtagmodalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="createtagmodalLabel">Create New Tag</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="create-tag-form">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="tag-name" class="form-label">Tag Name</label>
+                        <input type="text" class="form-control" id="tag-name" name="name" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Save Tag</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            let newTagName = "";
+            let newTags = [];
+            let tagList = [];
+
+            function fetchTagsAndUpdateButtons() {
+                fetch('/get_tags/')
+                    .then(response => response.json())
+                    .then(data => {
+                        let tags = [...data.tags, ...newTags];
+                        tags = removeDuplicates(tags);
+                        console.log("Here: ");
+                        console.log(tags);
+                        const buttonContainer = document.getElementById('button-container');
+                        var buttons = document.querySelectorAll('button[name="tag"]');
+
+                        var clickedButtons = [];
+                        buttons.forEach(function (button) {
+                            if (button.classList.contains('btn-primary')) {
+                                clickedButtons.push(button.id);
+                            }
+                        });
+
+                        buttonContainer.innerHTML = '';
+
+                        tags.forEach(tag => {
+                            if (tag.name && tag.name.trim() !== "") {
+                                const tagWrapper = document.createElement('div');
+                                tagWrapper.style.display = "inline-block";
+                                tagWrapper.style.margin = "5px";
+
+                                const newButton = document.createElement('button');
+                                newButton.innerHTML = tag.name;
+                                newButton.name = "tag";
+                                newButton.type = "button";
+                                newButton.className = "btn btn-secondary";
+                                newButton.id = `tag-${tag.name}`;
+
+                                if (tag.name === newTagName) {
+                                    newButton.classList.replace('btn-secondary', 'btn-primary');
+                                    tagList.push(tag.name);
+                                }
+
+                                const deleteButton = document.createElement('button');
+                                deleteButton.innerHTML = "X";
+                                deleteButton.type = "button";
+                                deleteButton.className = "btn btn-danger btn-sm";
+                                deleteButton.style.marginLeft = "5px";
+                                deleteButton.onclick = function () {
+                                    deleteTag(tag.id, tag.name);
+                                };
+
+                                tagWrapper.appendChild(newButton);
+                                tagWrapper.appendChild(deleteButton);
+                                buttonContainer.appendChild(tagWrapper);
+                            } else {
+                                console.error('Tag name is either null, undefined, or an empty string');
+                            }
+                        });
+
+                        buttons = document.querySelectorAll('button[name="tag"]');
+                        buttons.forEach(function (button) {
+                            if (clickedButtons.includes(button.id)) {
+                                button.classList.replace('btn-secondary', 'btn-primary');
+                            }
+                        });
+
+                        addEventListenersToTagButtons();
+                    })
+                    .catch(error => {
+                        console.error('Error fetching tags:', error);
+                    });
+            }
+
+            function getCookie(name) {
+                let cookieValue = null;
+                if (document.cookie) {
+                    const cookies = document.cookie.split(';');
+                    for (let cookie of cookies) {
+                        cookie = cookie.trim();
+                        if (cookie.startsWith(name + '=')) {
+                            cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                            break;
+                        }
+                    }
+                }
+                return cookieValue;
+            }
+
+            function removeDuplicates(arr) {
+                const seen = new Set();
+                return arr.filter(item => {
+                    const duplicate = seen.has(item.name);
+                    seen.add(item.name);
+                    return !duplicate;
+                });
+            }
+
+            document.getElementById("addtagButton").addEventListener("click", function () {
+                const tagName = document.getElementById("id_new_tag").value;
+                const url = '/add_tag/';
+                const data = { 'name': tagName };
+                const csrftoken = getCookie('csrftoken');
+
+                if (tagName && tagName.trim() !== "") {
+                    newTagName = tagName;
+                    fetch(url, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': csrftoken
+                        },
+                        body: JSON.stringify(data)
+                    })
+                        .then(response => response.json())
+                        .then(data => {
+                            console.log(data);
+                            if (!('success' in data))
+                                newTags.push(data);
+                            fetchTagsAndUpdateButtons();
+                        })
+                        .catch(error => {
+                            console.error('Error:', error);
+                        });
+                }
+            });
+
+            function deleteTag(tagId, tagName) {
+                const url = `/delete_tag/${tagId}/`;
+                const csrftoken = getCookie('csrftoken');
+
+                fetch(url, {
+                    method: 'DELETE',
+                    headers: {
+                        'X-CSRFToken': csrftoken
+                    }
+                })
+                    .then(response => {
+                        if (response.ok) {
+                            newTags = newTags.filter(tag => tag.name !== tagName);
+                            tagList = tagList.filter(tag => tag !== tagName);
+                            fetchTagsAndUpdateButtons();
+                        } else {
+                            console.error('Failed to delete tag:', tagName);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                    });
+            }
+
+            function toggleTagSelection(button) {
+                const tagName = button.innerHTML;
+
+                if (tagList.includes(tagName)) {
+                    tagList = tagList.filter(tag => tag !== tagName);
+                    button.classList.replace('btn-primary', 'btn-secondary');
+                } else {
+                    tagList.push(tagName);
+                    button.classList.replace('btn-secondary', 'btn-primary');
+                }
+
+                console.log('Tag List:', tagList);
+            }
+
+            function addEventListenersToTagButtons() {
+                const tagButtons = document.querySelectorAll('button[name="tag"]');
+                tagButtons.forEach(button => {
+                    console.log(button.innerHTML);
+                    button.addEventListener('click', function () {
+                        toggleTagSelection(button);
+                    });
+                });
+            }
+
+            document.getElementById("submit-id-submit").addEventListener("click", function () {
+                document.getElementById("tags_list").value = tagList;
+                console.log("tagListString:", tagList);
+                console.log("Type of tagListString:", typeof tagList);
+            });
+
+            fetchTagsAndUpdateButtons();
+        });
+    </script>
+
+
+
+    {% endblock %}

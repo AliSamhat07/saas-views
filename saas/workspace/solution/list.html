@@ -1,0 +1,65 @@
+{% extends "base.html" %} {% block title %} Sass Project {% endblock %}
+{% load static %} {% block content %}
+<head>
+  <style>
+    .solution-card {
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      transition: 0.3s ease;
+    }
+
+    .solution-card:hover {
+      transform: scale(1.1);
+      box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    .solution-tag {
+      font-size: small;
+      font-weight: bold;
+      border: 2px solid var(--primary);
+      background-color: var(--primary);
+      color: white;
+      border-radius: 10px;
+      padding: 2px 8px;
+    }
+  </style>
+</head>
+<div class="mb-3 row bg-white pt-5 pb-1 complementary">
+  <h1 class="display-5 text-center  mt-3 mb-0 complementary"  > <img src="{% static 'img/wordmark.png' %}" height="110px" style="margin-bottom: 40px;" alt="" srcset=""> <span class="ms-2">Solutions</span>  </h1>
+<div class="mx-auto w-100 " style="max-width: 1200px;margin-top: -30px;">
+  <hr>
+
+</div>
+</div>
+<div class="container mx-auto row" style="padding: 5em; gap: 5em">
+    {% for solution in solutions %}
+    <a href="{% url 'solution_detail' solution.slug %}" class="text-center text-decoration-none col-6 card solution-card"
+    style="
+      padding: 0;
+      margin: 0;
+      width: fit-content;
+      max-width: 300px;
+      border-radius: 15px;
+    ">
+        <!-- <img src="" class="card-img-top" alt="..."> -->
+        <img src="{{solution.image.url}}" class="card-img-top" alt="...">
+        <div class="card-body">
+          <h5 class="card-title mb-4 text-start" style="font-size: 1.5em; font-family: Poppins; font-weight: 600">
+            {{solution.name}}
+          </h5>
+
+          <div
+              class="d-flex gap-3 mb-3 flex-column justify-content-start align-items-start complementary"
+            >
+              <p class="p-0 m-0" >
+                Delivery: Near real time
+              </p>
+              <p class="p-0 m-0" >
+                Starting at: <span class="fw-bold ms-1"> {{solution.dollar_per_km2}} $</span>
+              </p>
+            </div>
+
+        </div> 
+    </a>
+    {% endfor %}
+</div>
+{% endblock %}

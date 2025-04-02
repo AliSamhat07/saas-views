@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Real-Time Memory Usage Chart</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom"></script>
+    <style>
+        #loading {
+            display: none;
+            font-size: 18px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Memory Usage Chart </h1>
+    <button onclick="fetchMemoryData()">Update Chart</button>
+    <p id="loading">Loading...</p>
+    <canvas id="memoryChart"></canvas>
+
+    <script>
+
+        const ctx = document.getElementById('memoryChart').getContext('2d');
+        
+        const memoryChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [{
+                    label: 'Memory Usage (MB)',
+                    data: [],
+                    borderColor: 'rgb(75, 192, 192)',
+                    backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                    fill: true,
+                    tension: 0.3
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    x: {
+                        ticks: {
+                            autoSkip: true,
+                            maxTicksLimit: 20
+                        }
+                    }
+                },
+                plugins: {
+                    zoom: {
+                        pan: {
+                            enabled: true,
+                            mode: 'x'
+                        },
+                        zoom: {
+                            wheel: {
+                                enabled: true
+                            },
+                            pinch: {
+                                enabled: true
+                            },
+                            mode: 'x'
+                        }
+                    }
+                }
+            }
+        });
+        
+        // Function to fetch memory data from server
+        function fetchMemoryData() {
+            const loading = document.getElementById('loading');
+            loading.style.display = 'block'; // Show loading spinner
+
+            fetch('/logging_system/memory-data/')
+                .then(response => response.json())
+                .then(data => {
+                    memoryChart.data.labels = data.timestamps;
+                    memoryChart.data.datasets[0].data = data.memory;
+                    memoryChart.update();
+                })
+                .finally(() => {
+                    loading.style.display = 'none'; // Hide loading spinner
+                });
+        }
+
+        // Load data when the page loads
+        fetchMemoryData();
+    </script>
+</body>
+</html>

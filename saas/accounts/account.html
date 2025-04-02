@@ -1,0 +1,58 @@
+{% extends "base.html" %} {% load static %} {% block title %}Account{% endblock %} {% block head %}
+<link rel="stylesheet" href="{% static 'css/account.css' %}" />
+{% endblock %} 
+{% block content %}
+
+
+<style>
+  .mainuim {
+      margin: 0;
+      padding: 0;
+      height: 100vh;
+      background: url('{% static "img/bg/3.jpg" %}') no-repeat center center/cover;
+      
+  }
+  </style>
+<div class="w-100 mainuim">
+  <div class="text-center d-flex justify-content-center py-5">
+  <a href="{% url 'accounts:profile' %}" class="btn btn-dark btn-md m-3" >
+    Profile
+  </a>
+  <a href="#" class="btn btn-dark btn-md m-3"  >
+    Refill Balance
+  </a>
+  <a href="{% url 'accounts:process_history' %}" class="btn btn-dark btn-md m-3" >
+    Process History
+  </a>
+  <a href="{% url 'hidden_projects_and_processes' %}" class="btn btn-dark btn-md m-3" >
+    Deleted Projects & Process
+  </a>
+</div>
+
+<div class="w-100">
+  {% block subpage_content %}{% endblock %}
+</div>
+
+
+</div>
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    var currentPath = window.location.pathname;
+    while (currentPath && currentPath.at(-1) == '/') {
+      currentPath = currentPath.substring(0, currentPath.length - 1)
+    }
+    var navLinks = document.querySelectorAll('.nav-link');
+    setTimeout(() => {
+      navLinks.forEach(function(link) {
+        if (link.getAttribute('href') === currentPath) {
+          link.classList.add('active');
+        } else {
+          link.classList.remove('active');
+        }
+      });
+    }, 1)
+  });
+  
+</script>
+{% endblock %}
+ 

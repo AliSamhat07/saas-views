@@ -1,0 +1,866 @@
+{% extends "base.html" %} {% block title %} Sass Project {% endblock %}
+{% load static %} {% load crispy_forms_tags %} {% block head %}
+<!-- Map Card -->
+
+<script src="https://api.mapbox.com/mapbox-gl-js/v3.4.0/mapbox-gl.js"></script>
+<link href="https://api.mapbox.com/mapbox-gl-js/v3.4.0/mapbox-gl.css" rel="stylesheet" />
+<script src="https://unpkg.com/@turf/turf@6/turf.min.js"></script>
+<script src="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-draw/v1.4.3/mapbox-gl-draw.js"></script>
+<link rel="stylesheet" href="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-draw/v1.4.3/mapbox-gl-draw.css"
+  type="text/css" />
+<script src="https://unpkg.com/supercluster@8.0.0/dist/supercluster.min.js"></script>
+
+<!-- proj4 -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/proj4js/2.7.5/proj4.js"></script>
+<!-- geotiff -->
+<script src="https://cdn.jsdelivr.net/npm/geotiff@2.1.3/dist-browser/geotiff.min.js"></script>
+
+<script defer src="https://unpkg.com/shpjs@latest/dist/shp.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.7.1/jszip.min.js"></script>
+
+<script src="{% static 'js/bundle.js' %}"></script>
+<script src="{% static 'js/geo.js' %}"></script>
+<script>
+  function hide_poly(poly_name) {
+    card.remove_data(poly_name + "-layer");
+    card.remove_data(poly_name + "-outline");
+    card.remove_data(poly_name + "-label");
+    card.remove_data(poly_name + "");
+  }
+</script>
+<style>
+  .table_row:hover {
+    background-color: #f0f0f0; /* Change background color */
+    cursor: pointer; /* Change cursor to pointer */
+    transition: background-color 0.3s ease; /* Add smooth transition */
+}
+  .no-arrow::after {
+    display: none !important;
+  }
+
+  .modal.right .modal-dialog {
+    position: fixed;
+    top: 0;
+    right: 0;
+    height: 100%;
+    margin: 0;
+    max-width: 75vw;
+    /* Explicitly set 75% of the viewport width */
+    width: 75vw;
+    /* Ensure the modal respects 75% width */
+    transform: translateX(100%);
+    transition: transform 0.3s ease-in-out;
+  }
+
+  .modal.right .modal-content {
+    height: 100%;
+    overflow-y: auto;
+  }
+
+  .modal.right.show .modal-dialog {
+    transform: translateX(0);
+    /* Slide-in effect */
+  }
+  .icon-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+  .icon-input-large-span{
+  position: absolute;
+  margin-left: 15px;
+  display: flex;
+  align-items: center;
+}
+.icon-input-large{
+  padding-left: 55px;
+}
+  .icon-input-span{
+  position: absolute;
+  margin-left: 5px;
+  display: flex;
+  align-items: center;
+}
+.icon-input{
+  padding-left: 30px;
+}
+</style>
+<link rel="stylesheet" href="{% static 'css/process.css' %}">
+<!-- Map Card -->
+{% endblock %}
+
+{% block content %}
+
+<div class="d-flex align-items-center" style="margin-top: 150px; margin-left: 50px;">
+  <div class="icon-wrapper">
+  <span class="icon-input-large-span">  <i class="bi bi-pencil-square   display-6 "></i></span>
+  <input 
+    type="text" 
+    class="form-control input-h2 strong m-2 border-0 bg-transparent text-dark icon-input-large" 
+    style="max-width: 900px;" 
+    id="project-title-input" 
+    value="{{ project.title }}" 
+    data-id="{{ project.id }}"
+  >
+</div>
+  <button 
+    type="button" 
+    class="btn btn-transparent opp" 
+    data-bs-toggle="modal" 
+    data-bs-target="#DeleteProjectModal{{ project.slug }}" 
+    style="border-color: transparent;"
+  >
+  <i class="bi bi-trash-fill h1"></i>
+  </button>
+  <a href="create/" class=" btn btn-shady mx-5" > <span class="h3">Create New Process  </a>
+</div>
+
+
+<div class="" style=" margin-left: 70px;">
+  <h4> <i class="bi bi-gear-wide-connected me-2"></i> {{project.solution.name}}</h4>
+  <div class="icon-wrapper">
+
+  <span class="icon-input-span"> <i class="bi bi-hash mt-1 h4"></i></span>
+  <input type="text"  class="bg-transparent  form-control border-0  icon-input " id="project-tag-input"
+    value=" {% for tag in project.tag.all %}{{tag.name}} {% endfor %}" data-id="{{ project.id }}" style="background-color: #F8F8F8;font-weight: 700;max-width: 700px;" />
+  </div>
+  <hr style="max-width: 900px;" class="bg-dark">
+</div>
+
+<div class="d-flex justify-content-start " style="margin-left: 50px;margin-top: 70px;gap: 2em;margin-bottom: 50px; ">
+  <div id="process_wrapper" class=" px-0 py-2"
+    style=" margin-right: 50px; width: 100%; max-width: 500px; height: fit-content;{% if not processes %} display: none; {% endif %}">
+    <div class=" w-100">
+      <div class="row font-weight-bold px-4 py-2 " style="font-weight: 700; ">
+        <span class="col-1">#</span>
+        <span class="col-5">Name</span>
+        <span class="col">Date (GMT)</span>
+        <span class="col-1"><i class="bi bi-trash-fill"></i></span>
+      </div>
+      <div class="border-top" style="padding-top: 1em;">
+        {% for process in processes %}
+        <div class="table_row row mx-0 w-100 mb-3 align-items-center px-2" {% if process.id %}onclick="pm.change_process({{process.id}})"{% endif %}
+          id="process_row_{{process.id}}"  >
+          <span class="col-1" scope="row">#{{ forloop.counter }}</span>
+          <div class="col-5 icon-wrapper ">
+
+              <span class="icon-input-span"> <i class="bi bi-pencil-square mt-1 h5"></i></span>
+              <input type="text"  class="bg-transparent  form-control border-0 w-100 icon-input " id="project-process-input-{{ process.id }}"
+                value="{{process.name}}" data-id="{{ process.id }}" style="background-color: #F8F8F8;font-weight: 700;" />
+          </div>
+          <div class="col">{{ process.create_date }}</div>
+          <div class="col-1"><button class="dropdown-item text-danger " onclick="delete_process({{process.id}})" ><i class="bi bi-trash-fill"></i></button></div>
+        </div>
+
+        {% endfor %}
+      </div>
+
+
+    </div>
+  </div>
+  <div>
+    <div id="process_card" class="p-0 rounded-4  " style="margin-left: 50px;max-width: 600px; min-width: 550px;{% if not processes %} display: none; {% endif %}">
+      <div class="process-card-row m-0">
+        <div>
+          <div class="bg-white mx-auto rounded-4" style=" padding-bottom: 6em">
+            <img id="processThumbnail" class="thumbnail-image rounded-top-4"></img>
+            <div>
+              <div class="process-card-row d-flex justify-content-between " style="gap: 2em;">
+                <span class="h1 p-3" id="processName"></span>
+
+                <div class="dropdown mt-4">
+                  <a href="#" role="button" id="dropdownMenuLink" data-bs-toggle="dropdown" aria-expanded="false"
+                    class="dropdown-toggle no-arrow h2 strong mt-1 p-3">
+                    <i class="bi primary bi-cloud-download me-2"></i>
+                  </a>
+
+                  <ul class="dropdown-menu" aria-labelledby="dropdownMenuLink">
+                    <li><a href="#" id="download_shp" class="dropdown-item"> Download Results as Shape File</a></li>
+                    <li><a href="#" id="download_geojson" download class="dropdown-item"> Download Results as GeoJson</a></li>
+                    <li><a id="download_tiff" download class="dropdown-item" href="#">Download Dataset as GeoTiff File</a></li>
+                    <li><a id="download_xyz_tiles_zip" download class="dropdown-item" href="#">Download Dataset as Tiles</a></li>
+                  </ul>
+                </div>
+
+              </div>
+            </div>
+            <div id="status-container" class=" w-75 mx-auto d-flex justify-content-between align-items-center"
+              style="height: 5px; margin-top: 4em;">
+
+            </div>
+          </div>
+        </div>
+        <div class=" w-100">
+          <div class="pl-3">
+
+
+            <div class="process-card-row p-3 ms-4 " style="gap: 2em;">
+              <span class="h6"> <i class="bi bi-calendar me-2"></i> <span id="processDate"> </span> (GMT)</span><br>
+              <span class="h6"><i class="bi bi-heptagon me-2"></i> <span id="processArea"> </span> km<sup>2</sup> </span><br>
+              <span class="h6"> <i class="bi bi-coin me-2"></i> <span id="processAmount"> </span> $ </span><br>
+
+            </div>
+            <button type="button" id="view_on_map_button" class="w-100 btn btn-primary rounded-bottom-4 rounded-top-0 py-3" data-bs-toggle="modal"
+              data-bs-target="#rightSlideModal">
+              <span class="h5 ">View On Map</span>
+            </button>
+
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal -->
+<div class="modal right fade" id="rightSlideModal" tabindex="-1" aria-labelledby="rightSlideModalLabel"
+  aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h4 class="modal-title" id="rightSlideModalLabel"></h4>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div id="main_cards_body" style="height: 100%;width: 100%;" class="w-100 p-0"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="DeleteProjectModal{{ project.slug }}" tabindex="-1" aria-labelledby="DeleteProjectModal{{ project.slug }}Label" aria-hidden="true">
+  <div class="modal-dialog">
+      <div class="modal-content">
+          <div class="modal-header">
+              <h5 class="modal-title text-danger " id="DeleteProjectModal{{ project.slug }}Label">Project will be Deleted!</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+        
+          <div class="modal-footer">
+              <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Cancel</button>
+              <a href="{% url 'workspace:hide_project' project.slug %}" class="btn btn-opp">Delete</a>
+          </div>
+      </div>
+  </div>
+</div>
+
+<script type="text/javascript">
+    function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+      const cookies = document.cookie.split(';');
+      for (let i = 0; i < cookies.length; i++) {
+        const cookie = cookies[i].trim();
+        if (cookie.substring(0, name.length + 1) === (name + '=')) {
+          cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+          break;
+        }
+      }
+    }
+    return cookieValue;
+  }
+
+  class ProcessManager {
+  constructor(id,containerId = "status-container", intervalTime = 4000) {
+    this.id = id;
+    this.container = document.getElementById(containerId);
+    this.intervalTime = intervalTime;
+    this.past_status = 0;
+    this.processSituations = [
+      { s: "Preparation", l: "Preparation", f: "Preparation" },
+      { s: "Inference ", l: "Inference", f: "Inference" },
+      { s: "Final Touches  ", l: "Final Touches  ", f: "Final Touches " },
+    ];
+    this.svgs = {
+      done: "done-icon.svg",
+      pending: "pending-icon.svg",
+      failed: "failed-icon.svg",
+    };
+    
+    this.init();
+  }
+
+  async refresh() {
+    this.start_loading();
+    await this.fetch_process();
+    this.update_card();
+    this.stop_loading();
+  }
+  async init() {
+    this.checkStatus();
+    await this.refresh();
+    this.startPolling();
+  }
+  async fetch_process() {
+    var link = `/projects/${this.id}/process/`;
+    var response = await fetch(link);
+    this.details = await response.json();
+    var createDate = new Date(this.details.create_date);
+    this.details.create_date = createDate.toLocaleString("en-UK", {
+      year: "numeric",
+      month: "numeric",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+    return this.details;
+  }
+  start_loading() {
+    // Get the process card element
+    const processCard = document.getElementById("process_card");
+
+    // Create a spinner overlay
+    const spinnerOverlay = document.createElement("div");
+    spinnerOverlay.id = "spinner-overlay";
+    spinnerOverlay.style.position = "absolute";
+    spinnerOverlay.style.top = "0";
+    spinnerOverlay.style.left = "0";
+    spinnerOverlay.style.width = "100%";
+    spinnerOverlay.style.height = "100%";
+    spinnerOverlay.style.backgroundColor = "rgba(255, 255, 255, 0.8)";
+    spinnerOverlay.style.display = "flex";
+    spinnerOverlay.style.justifyContent = "center";
+    spinnerOverlay.style.alignItems = "center";
+    spinnerOverlay.style.zIndex = "1000";
+    spinnerOverlay.style.borderRadius = "10px";
+
+    // Create a spinner element
+    const spinner = document.createElement("div");
+    spinner.className = "spinner-border text-primary";
+    spinner.role = "status";
+    spinner.style.width = "3rem";
+    spinner.style.height = "3rem";
+
+    // Append the spinner to the overlay
+    spinnerOverlay.appendChild(spinner);
+
+    // Position the spinner overlay within the process card
+    processCard.style.position = "relative";
+    processCard.appendChild(spinnerOverlay);
+  }
+  stop_loading() {
+    // Get the spinner overlay element
+    const spinnerOverlay = document.getElementById("spinner-overlay");
+
+    // If the spinner overlay exists, remove it
+    if (spinnerOverlay) {
+      spinnerOverlay.remove();
+    }
+  }
+
+  update_card() {
+    var processName = document.getElementById("processName");
+    var processDate = document.getElementById("processDate");
+    var processThumbnail = document.getElementById("processThumbnail");
+    var processArea = document.getElementById("processArea");
+    var processAmount = document.getElementById("processAmount");
+    var download_xyz_tiles_zip = document.getElementById("download_xyz_tiles_zip");
+    var download_shp = document.getElementById("download_shp");
+    var download_geojson = document.getElementById("download_geojson");
+    var download_tiff = document.getElementById("download_tiff");
+    var view_on_map_button = document.getElementById("view_on_map_button");
+    var rightSlideModalLabel = document.getElementById("rightSlideModalLabel");
+
+
+    processName.textContent = this.details.name;
+    processDate.textContent =this.details.create_date;
+    processThumbnail.src = this.details.thumbnail;
+    processArea.textContent = this.details.area;
+    processAmount.textContent = this.details.fees;
+    if (this.past_status === '4l') {
+    // Enable links and set href or onclick attributes
+    download_xyz_tiles_zip.setAttribute("href", this.details.dataset_zip_file);
+    download_xyz_tiles_zip.classList.remove("disabled");
+    
+    download_shp.setAttribute("href", this.details.result_file_shp);
+    download_shp.classList.remove("disabled");
+    
+    download_geojson.setAttribute("href", this.details.result_file);
+    download_geojson.classList.remove("disabled");
+    download_tiff.setAttribute("href", this.details.dataset);
+    download_tiff.classList.remove("disabled");
+    
+    view_on_map_button.innerHTML= '<span class="h5 ">View On Map</span>'
+    view_on_map_button.setAttribute("onclick", `result_process(${this.id})`);
+    view_on_map_button.classList.remove("disabled");
+    
+    rightSlideModalLabel.textContent = this.details.name;
+
+  } else if (this.past_status === '3l') {
+    // Enable links and set href or onclick attributes
+    download_xyz_tiles_zip.setAttribute("href", this.details.dataset_zip_file);
+    
+    download_shp.setAttribute("href", this.details.result_file_shp);
+    download_shp.classList.remove("disabled");
+    
+    download_geojson.setAttribute("href", this.details.result_file);
+    download_geojson.classList.remove("disabled");
+    
+    view_on_map_button.setAttribute("onclick", `result_process(${this.id})`);
+    view_on_map_button.innerHTML= '<span class="h5 ">Early View On Map</span>'
+    view_on_map_button.classList.remove("disabled");
+    
+    rightSlideModalLabel.textContent = this.details.name +" - Early View";
+  } else {
+    // Disable the elements
+    download_xyz_tiles_zip.removeAttribute("href");
+    download_xyz_tiles_zip.classList.add("disabled");
+    
+    download_shp.removeAttribute("href");
+    download_shp.classList.add("disabled");
+    
+    download_geojson.removeAttribute("href");
+    download_geojson.classList.add("disabled");
+    
+    download_tiff.removeAttribute("href");
+    download_tiff.classList.add("disabled");
+
+    view_on_map_button.removeAttribute("onclick");
+    view_on_map_button.classList.add("disabled");
+    
+    rightSlideModalLabel.textContent = "Unavailable";
+  }
+
+      
+  }
+  highlight_row(id) {
+    const old_row = document.getElementById("process_row_" + this.id);
+    const old_input = document.getElementById(
+      "project-process-input-" + this.id
+    );
+    const new_row = document.getElementById("process_row_" + id);
+    const new_input = document.getElementById("project-process-input-" + id);
+
+    if (old_row) {
+      old_row.style.backgroundColor = "white"; // Highlight the old row
+      old_row.style.color = "black"; // Highlight the new row
+      old_input.style.color = "black"; // Highlight the new row
+    }
+
+    if (new_row) {
+      new_row.style.backgroundColor = "#00544b"; // Highlight the new row
+      new_row.style.color = "white"; // Highlight the new row
+      new_input.style.color = "white"; // Highlight the new row
+    }
+  }
+
+  async change_process(id) {
+    this.stopPolling();
+    this.highlight_row(id);
+    this.id = id;
+    this.start_loading();
+    try {
+      await this.checkStatus();
+      await this.refresh();
+    } catch (error) {
+      console.error("Error refreshing process:", error);
+    } finally {
+      this.stop_loading();
+    }
+    this.startPolling();
+  }
+
+  async checkStatus() {
+    if (this.isFetching) return; // Prevent overlapping fetches
+    this.isFetching = true;
+
+    try {
+      const response = await fetch(`/projects/${this.id}/situation/`);
+      const { situation } = await response.json();
+
+      if (this.past_status !== situation) {
+        this.start_loading();
+        this.past_status = situation;
+        this.update_status_bar(situation);
+        this.refresh();
+        this.stop_loading();
+
+      }
+    } catch (error) {
+      console.error("Error fetching status:", error);
+    } finally {
+      this.isFetching = false; // Reset fetching flag
+    }
+  }
+  // ------------------------------------- Polling START
+
+  startPolling() {
+    // Set polling interval (e.g., every 5 seconds)
+    this.pollingInterval = setInterval(() => this.checkStatus(), 5000);
+  }
+
+  stopPolling() {
+    // Clear polling interval
+    if (this.pollingInterval) {
+      clearInterval(this.pollingInterval);
+      this.pollingInterval = null;
+    }
+  }
+
+  // ------------------------------------- Polling END
+
+  // ------------------------------------- Loading Interface START
+  showSpinner() {
+    // Create an overlay with a custom spinner if it doesn't exist
+    if (!document.getElementById("loading-spinner-overlay")) {
+      const overlayDiv = document.createElement("div");
+      overlayDiv.id = "loading-spinner-overlay";
+
+      // Style for the overlay
+      Object.assign(overlayDiv.style, {
+        position: "absolute",
+        top: "0",
+        left: "0",
+        width: "100%",
+        height: "100%",
+        backgroundColor: "rgba(255, 255, 255, 0.8)",
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+        zIndex: "1000",
+        borderRadius: "10px",
+      });
+
+      const spinnerDiv = document.createElement("div");
+      spinnerDiv.className = "custom-spinner";
+
+      // Style for the spinner
+      Object.assign(spinnerDiv.style, {
+        border: "6px solid #f3f3f3",
+        borderTop: "6px solid #3498db",
+        borderRadius: "50%",
+        width: "40px",
+        height: "40px",
+        animation: "spin 1s linear infinite",
+      });
+
+      // Append spinner to overlay
+      overlayDiv.appendChild(spinnerDiv);
+      this.container.appendChild(overlayDiv);
+
+      // Adding keyframes for spin animation in JS
+      const styleSheet = document.styleSheets[0];
+      const keyframes = `@keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }`;
+      styleSheet.insertRule(keyframes, styleSheet.cssRules.length);
+    } else {
+      document.getElementById("loading-spinner-overlay").style.display = "flex";
+    }
+  }
+
+  hideSpinner() {
+    const overlay = document.getElementById("loading-spinner-overlay");
+    if (overlay) {
+      overlay.style.display = "none";
+    }
+  }
+  // ------------------------------------- Loading Interface END
+
+  // ------------------------------------- Interface Update START
+  update_status_bar(currentStatus) {
+    this.updateBgColor(
+      currentStatus,
+      parseInt(currentStatus[0]) > this.processSituations.length
+    );
+    const currentStatusNumber = parseInt(currentStatus[0]);
+    const currentStatusSituation = currentStatus[1];
+    this.container.innerHTML = "";
+    for (let i = 1; i <= this.processSituations.length; i++) {
+      if (i < currentStatusNumber) {
+        this.generateStatus(
+          i,
+          this.processSituations[i - 1]["s"],
+          "white",
+          "#008b6a",
+          "done",
+          "min(40px, 10vw)",
+          "min(40px, 10vw)"
+        );
+      } else if (currentStatusNumber === i) {
+        if (currentStatusSituation === "l") {
+          this.generateStatus(
+            i,
+            this.processSituations[i - 1]["l"],
+            "#BDBDBD",
+            "#BDBDBD",
+            "loading",
+            "min(40px, 10vw)",
+            "25px"
+          );
+        } else {
+          this.generateStatus(
+            i,
+            this.processSituations[i - 1]["f"],
+            "red",
+            "red",
+            "failed",
+            "min(40px, 10vw)",
+            "min(15px, 4vw)"
+          );
+        }
+      } else {
+        this.generateStatus(
+          i,
+          this.processSituations[i - 1]["l"],
+          "#5F575A",
+          "#5F575A",
+          "pending",
+          "min(25px, 6vw)",
+          "min(25px, 6vw)"
+        );
+      }
+    }
+
+    let children = Array.from(this.container.children);
+    let len = children.length;
+    children[0].style.marginLeft = "-10px";
+    children[len - 1].style.marginRight = "-10px";
+  }
+
+  generateStatus(
+    index,
+    text,
+    color,
+    textColor,
+    svg,
+    divWidth = "min(45px, 10vw)",
+    size = null
+  ) {
+    const mainDiv = document.createElement("div");
+    mainDiv.className =
+      "d-flex justify-items-center align-items-center flex-column position-relative";
+
+    const div = document.createElement("div");
+    div.className =
+      "rounded-circle d-flex justify-items-center align-items-center";
+    div.style.width = divWidth;
+    div.style.height = divWidth;
+    div.style.backgroundColor = color;
+
+    const iconElement = this.createIcon(svg, size);
+
+    const textElement = document.createElement("p");
+    textElement.innerText = text;
+    let txtClass = "flexible-text";
+    if (index.toString() !== this.past_status[0])
+      txtClass += " d-none d-sm-block";
+    textElement.className = txtClass;
+
+    textElement.style.position = "absolute";
+    textElement.style.color = textColor;
+    textElement.style.top = `calc(35px + calc(${div.style.width} / 2))`;
+    textElement.style.textAlign = "left";
+    textElement.style.minWidth = "max-content";
+
+    div.appendChild(iconElement);
+    mainDiv.appendChild(div);
+    mainDiv.appendChild(textElement);
+
+    this.container.appendChild(mainDiv);
+  }
+
+  createIcon(svg, size) {
+    if (this.svgs[svg]) {
+      const iconElement = document.createElement("img");
+      iconElement.src = `{% static '' %}img/${this.svgs[svg]}`;
+
+      let iconClass = "mx-auto";
+      iconElement.className = iconClass;
+      if (size) iconElement.style.width = size;
+      else iconElement.style.width = "100%";
+
+      return iconElement;
+    } else {
+      const iconElement = document.createElement("div");
+      iconElement.className = "spinner-border mx-auto text-white";
+      iconElement.style.width = "25px";
+      iconElement.style.height = "25px";
+      return iconElement;
+    }
+  }
+
+  updateBgColor(currentStatus, isDone) {
+    if (isDone) {
+      this.container.style.backgroundColor = "var(--primary)";
+      return;
+    }
+    let index = parseInt(currentStatus[0]);
+    let totalStatuses = this.processSituations.length;
+    let ratio = index / totalStatuses;
+
+    let greenContinue = Math.max(0, index - 1.5) / totalStatuses;
+    let lightGrayStart = Math.max(0, index - 0.5) / totalStatuses;
+    let darkGrayStart = index / totalStatuses;
+
+    let gradient = `linear-gradient(to right, `;
+
+    if (index > 1) gradient += ` var(--primary) ${greenContinue * 100}%, `;
+    gradient += ` lightgray ${lightGrayStart * 100}%, `;
+    if (index <= totalStatuses)
+      gradient += ` darkgray ${darkGrayStart * 100}% )`;
+
+    this.container.style.background = gradient;
+  }
+  // ------------------------------------- Interface Update END
+}
+
+async function result_process(processId) {
+  var rpm = new ProcessManager(processId);
+  var results = await rpm.fetch_process();
+  style = {
+    polygons_fill_color: "#fbb03b",
+    polygons_fill_opacity: 0.8,
+    line_color: "#fbb03b",
+    line_width: 3,
+    text_size: 12,
+    text_color: "#fbb03b",
+    marker_color: "#FFFFFF",
+    marker_scale: 0.2,
+    circle_radius: 5,
+    circle_color: "#FF0000",
+  };
+
+  card.AddPolygon(results.aoi_coordinates, results.name + results.id, true);
+  card.link_import(
+    results.result_file,
+    style,
+    (prefix = results.name + results.id)
+  );
+  card.add_tms_tiles(
+    results.dataset_tiles_path + "{z}/{x}/{y}.png",
+    results.dataset_tiles_path + "tilemapresource.xml",
+    results.name + results.id
+  );
+}
+
+
+
+  function delete_process(processId) {
+  const url = `/projects/{{project.slug}}/processes/${processId}/hide/`;
+  const csrftoken = getCookie("csrftoken");
+
+  fetch(url, {
+    method: "POST",
+    headers: {
+      "X-CSRFToken": csrftoken,
+    },
+  })
+    .then((response) => {
+      if (response.ok) {
+        location.replace(location.href);
+      } else {
+        location.replace(location.href);
+      }
+    })
+    .catch((error) => {
+      console.error("Error:", error);
+    });
+}
+
+  // Update Title and Description  & process names
+  function handleInputChange(inputId, endpoint, titleId) {
+
+    document.getElementById(inputId).addEventListener('input', function () {
+
+      const newTitle = this.value;
+      const itemId = this.dataset.id;
+      const csrfToken = '{{ csrf_token }}';
+
+      fetch(endpoint.replace('{id}', itemId), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': csrfToken
+        },
+        body: JSON.stringify({ new_title: newTitle })
+      })
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+          } else {
+            console.error('Error updating title:', data.error);
+          }
+        })
+        .catch(error => {
+          console.error('Error:', error);
+        });
+    });
+  }
+
+  handleInputChange('project-title-input', '/update_project_title/{id}/', 'project-title');
+  handleInputChange('project-tag-input', '/update_project_tags/{id}/', 'project-title');
+
+  {% for process in processes %}
+  handleInputChange('project-process-input-{{ process.id }}', '/update_process_title/{{ process.id }}/', 'dataset-title-{{ process.id }}');
+  {% endfor %}
+  //----------------------------------------------//----------------------------------------------//----------------------------------------------//----------------------------------------------//----------------------------------------------//----------------------------------------------//----------------------------------------------//----------------------------------------------
+
+
+
+  // Process Display Management
+  //----------------------------------------------//----------------------------------------------//----------------------------------------------//----------------------------------------------//----------------------------------------------//----------------------------------------------//----------------------------------------------//----------------------------------------------
+
+
+
+  {% if processes %}
+  {% if processes.0 %}
+  pm = new ProcessManager({{ processes.0.id }})
+  pm.highlight_row({{ processes.0.id }})
+  {% elif processes.1 %}
+  pm = new ProcessManager({{ processes.1.id }})
+  pm.highlight_row({{ processes.1.id }})
+  {% endif %}
+  {% endif %}
+
+  // ---------------------------------------------------------
+  document.addEventListener('DOMContentLoaded', function () {
+    GeoDataHandler.loadProjections(url = '{% static "js/projections.json" %}')
+
+    Mappy.setToken("pk.eyJ1IjoibWhkMTIzbXN3aSIsImEiOiJjamp0azg5OHAyaGIxM3Fvbjc0b3pvZ2VpIn0.vmB_VWu_ewHeNBtoEtdt7Q");
+    card = new Dashboard("", "", "main_cards_body", {
+      container: 'map1',
+      style: 'mapbox://styles/mapbox/dark-v11',
+      center: [0, 0],
+      zoom: 2
+    });
+    card.style = {
+      polygons_fill_color: "#fbb03b",
+      polygons_fill_opacity: 0.1,
+      line_color: "#fbb03b",
+      line_width: 3,
+      text_size: 12,
+      text_color: "#fbb03b",
+      marker_color: "#FFFFFF",
+      marker_scale: 0.2,
+      circle_radius: 5,
+      circle_color: "#FF0000",
+    };
+
+
+    card.printCard(cardDiv_class = 'card border-0 w-100 h-100 p-0', map_height = "100%");
+    card.addClear()
+    card.loadMap();
+    card.addFullScreen();
+    card.addNavigation()
+    card.addScale()
+    card.addStyleSelector('Dark')
+    card.addGeoLocator()
+    card.addDrawing(polygon = true, point = false, line_string = false, rectangle = true, trash = false, modify = false)
+
+    card.aoi_select_event()
+
+
+  });
+
+  const rightSlideModal = document.getElementById('rightSlideModal');
+
+  // Add event listener for when the modal is completely shown
+  rightSlideModal.addEventListener('shown.bs.modal', () => {
+    card.map.resize();
+  });
+
+</script>
+
+{% endblock %}
