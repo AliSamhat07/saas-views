@@ -1,103 +1,137 @@
-{% extends "account.html" %}
-{% load static %} 
-{% load crispy_forms_tags %} 
+{% extends "accounts/account.html" %} {% load static %} {% load
+crispy_forms_tags %} {% block title %}Bin{% endblock %} {% block subpage_content %}
 
-{% block title %}Bin{% endblock %}  
-
-{% block subpage_content %}
-
-<style>
-    
-</style>
+<style></style>
 <div class="container-fluid">
-    <div class="bg-white px-4 mt-5 py-2 mx-auto" style="border-radius: 10px !important; min-width: fit-content; max-width: 800px;">
-        <h2 class="text-center my-2 fw-bold text-black">Deleted Projects</h2>
-        <table class="table text-center  " id="projectsTable" style="background-color: transparent;">
-            <thead class="bg-aqua">
-                <tr>
-                    <th>Name</th>
-                    <th>Created Date</th>
-                    <th>Number of processes</th>
-                    <th>Action</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for project, number_of_processes in combined_list %}
-                <tr>
-                    <td>{{ project.title }}</td>
-                    <td>{{ project.system_registration_date|date:"d F Y H:i" }}</td>
-                    <td class="text-center ">{{ number_of_processes }}</td>
-                    <td>
-                        <form method="POST" action="{% url 'workspace:unhide_project' project.slug  %}">
-                            {% csrf_token %}
-                            <button type="submit" class="btn btn-shady flexible-text" style="border-color: transparent;">
-                                <i class="bi bi-eye"></i> Restore
-                            </button>
-                        </form>
-                    </td>
-                </tr>
-                {% empty %}
-                <tr>
-                    <td colspan="4" class="text-center py-3">No hidden projects found.</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
+  <div
+    class="bg-white px-4 mt-5 py-2 mx-auto"
+    style="
+      border-radius: 10px !important;
+      min-width: fit-content;
+      max-width: 800px;
+    "
+  >
+    <h2 class="text-center my-2 fw-bold text-black">Deleted Projects</h2>
+    <table
+      class="table text-center"
+      id="projectsTable"
+      style="background-color: transparent"
+    >
+      <thead class="bg-aqua">
+        <tr>
+          <th>Name</th>
+          <th>Created Date</th>
+          <th>Number of processes</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for project, number_of_processes in combined_list %}
+        <tr>
+          <td>{{ project.title }}</td>
+          <td>{{ project.system_registration_date|date:"d F Y H:i" }}</td>
+          <td class="text-center">{{ number_of_processes }}</td>
+          <td>
+            <form
+              method="POST"
+              action="{% url 'workspace:unhide_project' project.slug  %}"
+            >
+              {% csrf_token %}
+              <button
+                type="submit"
+                class="btn btn-shady flexible-text"
+                style="border-color: transparent"
+              >
+                <i class="bi bi-eye"></i> Restore
+              </button>
+            </form>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="4" class="text-center py-3">
+            No hidden projects found.
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
 
-    <div class="bg-white px-4 py-2 mx-auto mt-5" style="border-radius: 10px !important; min-width: fit-content; max-width: 800px;">
-        <h2 class="text-center my-2 fw-bold text-black" style="margin-top: 3em;">Project Processes</h2>
-        <table class="table text-center" id="processesTable">
-            <thead>
-                <tr>
-                    <th>Name</th>
-                    <th>Created Date</th>
-                    <th>Situation</th>
-                    <th>Action</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for process in hidden_processes %}
-                <tr>
-                    <td>{{ process.name }}</td>
-                    <td>{{ process.system_registration_date|date:"d F Y H:i" }}</td>
-                    <td>{{ process.get_situation_display }}</td>
-                    <td>
-                        <form method="POST" action="{% url 'workspace:unhide_project_process' process.project.slug process.id%}">
-                            {% csrf_token %}
-                            <button type="submit" class="btn btn-shady flexible-text" style="border-color: transparent;">
-                                <i class="bi bi-eye"></i> Restore
-                            </button>
-                        </form>
-                    </td>
-                </tr>
-                {% empty %}
-                <tr>
-                    <td colspan="4" class="text-center py-3">No hidden processes found.</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
+  <div
+    class="bg-white px-4 py-2 mx-auto mt-5"
+    style="
+      border-radius: 10px !important;
+      min-width: fit-content;
+      max-width: 800px;
+    "
+  >
+    <h2 class="text-center my-2 fw-bold text-black" style="margin-top: 3em">
+      Project Processes
+    </h2>
+    <table class="table text-center" id="processesTable">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Created Date</th>
+          <th>Situation</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for process in hidden_processes %}
+        <tr>
+          <td>{{ process.name }}</td>
+          <td>{{ process.system_registration_date|date:"d F Y H:i" }}</td>
+          <td>{{ process.get_situation_display }}</td>
+          <td>
+            <form
+              method="POST"
+              action="{% url 'workspace:unhide_project_process' process.project.slug process.id%}"
+            >
+              {% csrf_token %}
+              <button
+                type="submit"
+                class="btn btn-shady flexible-text"
+                style="border-color: transparent"
+              >
+                <i class="bi bi-eye"></i> Restore
+              </button>
+            </form>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="4" class="text-center py-3">
+            No hidden processes found.
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
 </div>
 
 <!-- Include jQuery and DataTables -->
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
-<link rel="stylesheet" href="https://cdn.datatables.net/1.11.5/css/jquery.dataTables.min.css">
+<link
+  rel="stylesheet"
+  href="https://cdn.datatables.net/1.11.5/css/jquery.dataTables.min.css"
+/>
 
 <script>
-    $(document).ready(function () {
-        $("#projectsTable, #processesTable").DataTable({
-            "paging": true,      // Enable pagination
-            "searching": true,   // Enable search
-            "ordering": true,    // Enable sorting
-            "info": true,        // Show table info
-            "lengthMenu": [5, 10, 25, 50], // Number of rows per page
-            "columnDefs": [
-                { "orderable": false, "targets": 3 } // Disable sorting for the last column (Action)
-            ]
-        });
+  $(document).ready(function () {
+    $("#projectsTable, #processesTable").DataTable({
+      paging: true, // Enable pagination
+      searching: true, // Enable search
+      ordering: true, // Enable sorting
+      info: true, // Show table info
+      lengthMenu: [5, 10, 25, 50], // Number of rows per page
+      columnDefs: [
+        { orderable: false, targets: 3 }, // Disable sorting for the last column (Action)
+      ],
     });
+  });
 </script>
 {% endblock %}

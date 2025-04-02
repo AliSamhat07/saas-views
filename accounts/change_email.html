@@ -1,17 +1,13 @@
-{% extends "account.html" %}
-{% load static %} {% load crispy_forms_tags %} 
-{% block title %}Profile{% endblock %}  
-{% block subpage_content %}
-<div
-  id=""
->
+{% extends "accounts/account.html" %} {% load static %} {% load
+crispy_forms_tags %} {% block title %}Profile{% endblock %} {% block
+subpage_content %}
+<div id="">
   <div class="main-account-container w-auto" style="max-width: 700px">
     <h2 class="main-header text-center">Change Email</h2>
-    <div class="mb-5 m-2">
-        {% crispy form %}
-    </div>
-    <a href="{% url 'accounts:change_all' %}" class="btn w-100 btn-opp" > Back </a>
-
-</div>
+    <div class="mb-5 m-2">{% crispy form %}</div>
+    <a href="{% url 'accounts:change_all' %}" class="btn w-100 btn-opp">
+      Back
+    </a>
+  </div>
 </div>
 {% endblock %}

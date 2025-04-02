@@ -1,21 +1,17 @@
-{% extends "account.html" %}
-{% block title %}Profile{% endblock %}  
+{% extends "accounts/account.html" %} {% block title %}Profile{% endblock %} 
 {% block subpage_content %}
-<div
-  id="profile"
->
+<div id="profile">
   <div class="main-account-container w-auto" style="max-width: 700px">
-
     <div class="d-flex justify-content-center align-items-center w-auto mb-5">
-      {% if user.profile.image  %}
+      {% if user.profile.image %}
       <img
-      src="{{  user.profile.image.url }}"
-      class="profile-image mb-3"
-      alt="Profile Image"
+        src="{{  user.profile.image.url }}"
+        class="profile-image mb-3"
+        alt="Profile Image"
       />
       {% elif user.google_image %}
       <img
-      src="{{ user.google_image }}"
+        src="{{ user.google_image }}"
         class="profile-image mb-3"
         alt="Profile Image"
       />
@@ -27,7 +23,7 @@
     </div>
 
     <div class="w-100 px-4 info-container">
-      <div class="row border-top py-2 text-start  justify-content-between">
+      <div class="row border-top py-2 text-start justify-content-between">
         <div class="col-auto col-sm-6 fw-semibol">Username</div>
         <div class="col-6 col-sm-6 fw-mediu">{{ user.username }}</div>
       </div>
@@ -59,16 +55,23 @@
       </div>
       <div class="row border-top py-2 text-start justify-content-between">
         <div class="col-auto col-sm-6 fw-semibol">Date Joined</div>
-        <div class="col-6 col-sm-6 fw-mediu">{{ user.date_joined|date:"F j, Y" }}</div>
+        <div class="col-6 col-sm-6 fw-mediu">
+          {{ user.date_joined|date:"F j, Y" }}
+        </div>
       </div>
-      <div class="row border-top border-bottom py-2 mb-5 text-start justify-content-between">
+      <div
+        class="row border-top border-bottom py-2 mb-5 text-start justify-content-between"
+      >
         <div class="col-auto col-sm-6 fw-semibol">Last Login</div>
-        <div class="col-6 col-sm-6 fw-mediu">{{ user.last_login|date:"F j, Y" }}</div>
+        <div class="col-6 col-sm-6 fw-mediu">
+          {{ user.last_login|date:"F j, Y" }}
+        </div>
       </div>
       <div>
-        <a href="{% url 'accounts:change_all' %}" class="btn w-100 btn-shady" > Edit </a>
+        <a href="{% url 'accounts:change_all' %}" class="btn w-100 btn-shady">
+          Edit
+        </a>
       </div>
-      
     </div>
   </div>
 </div>

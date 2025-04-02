@@ -1,46 +1,68 @@
-{% extends "account.html" %}
-{% load static %} {% load crispy_forms_tags %}
-{% block title %}Process History{% endblock %}
-{% block subpage_content %}
+{% extends "accounts/account.html" %} {% load static %} {% load
+crispy_forms_tags %} {% block title %}Process History{% endblock %} {% block subpage_content %}
 <style>
   th {
-    text-align:left
-}
+    text-align: left;
+  }
 </style>
-<div class="container  d-flex flex-direction-column" style="gap: 5em;">
+<div class="container d-flex flex-direction-column" style="gap: 5em">
   <div class="main-account-container px-4 px-sm-5">
     <h1 class="mb-5 mt-4 main-header">Processes History</h1>
-    
-    <!-- Filter Form -->
-    <form method="GET" class="mb-4 ">
-      <div class="row border rounded py-3 px-4 w-100">
 
+    <!-- Filter Form -->
+    <form method="GET" class="mb-4">
+      <div class="row border rounded py-3 px-4 w-100">
         <div class="col-md-5">
           <span class="h5">Filter By Area (Km<sup>2</sup>) </span>
-          <input type="number" name="area_min" class="form-control my-1" placeholder="Min Area" value="{{ filter_area_min }}">
-          <input type="number" name="area_max" class="form-control my-1" placeholder="Max Area" value="{{ filter_area_max }}">
+          <input
+            type="number"
+            name="area_min"
+            class="form-control my-1"
+            placeholder="Min Area"
+            value="{{ filter_area_min }}"
+          />
+          <input
+            type="number"
+            name="area_max"
+            class="form-control my-1"
+            placeholder="Max Area"
+            value="{{ filter_area_max }}"
+          />
         </div>
         <div class="col-md-5">
           <span class="h5">Filter By Amount ($) </span>
-          <input type="number" name="amount_min" class="form-control my-1" placeholder="Min Amount" value="{{ filter_amount_min }}">
-          <input type="number" name="amount_max" class="form-control my-1" placeholder="Max Amount" value="{{ filter_amount_max }}">
+          <input
+            type="number"
+            name="amount_min"
+            class="form-control my-1"
+            placeholder="Min Amount"
+            value="{{ filter_amount_min }}"
+          />
+          <input
+            type="number"
+            name="amount_max"
+            class="form-control my-1"
+            placeholder="Max Amount"
+            value="{{ filter_amount_max }}"
+          />
         </div>
 
         <div class="col-md-2">
-          <button type="submit" class="btn btn-shady" style="margin-top: 50px;" >Filter</button>
+          <button type="submit" class="btn btn-shady" style="margin-top: 50px">
+            Filter
+          </button>
         </div>
       </div>
     </form>
-    
-    
+
     <table class="table mt-5 info-container">
       <thead>
         <tr>
-          <th scope="col">Name </th>
-          <th scope="col">Amount ($) </th>
+          <th scope="col">Name</th>
+          <th scope="col">Amount ($)</th>
           <th scope="col">Date</th>
-          <th scope="col"> Solution </th>
-          <th scope="col"> Area (Km<sup>2</sup>) </th>
+          <th scope="col">Solution</th>
+          <th scope="col">Area (Km<sup>2</sup>)</th>
         </tr>
       </thead>
       <tbody>
@@ -48,8 +70,10 @@
         <tr>
           <td class="text-start">{{ process_bill.process.name }}</td>
           <td class="text-start">{{ process_bill.amount }}</td>
-          <td class="text-start">{{ process_bill.date|date:"d F Y H:i" }} </td>
-          <td class="text-start">{{ process_bill.process.project.solution.name }}</td>
+          <td class="text-start">{{ process_bill.date|date:"d F Y H:i" }}</td>
+          <td class="text-start">
+            {{ process_bill.process.project.solution.name }}
+          </td>
           <td class="text-start">{{ process_bill.process.data_set.area }}</td>
         </tr>
         {% empty %}
@@ -59,30 +83,48 @@
         {% endfor %}
       </tbody>
     </table>
-    
+
     <!-- Pagination Controls -->
     <nav>
       <ul class="pagination">
         {% if process_bill_history.has_previous %}
-          <li class="page-item">
-            <a class="page-link" href="?page=1{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">First</a>
-          </li>
-          <li class="page-item">
-            <a class="page-link" href="?page={{ process_bill_history.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">Previous</a>
-          </li>
-        {% endif %}
-        
-        <li class="page-item disabled">
-          <span class="page-link">Page {{ process_bill_history.number }} of {{ process_bill_history.paginator.num_pages }}</span>
+        <li class="page-item">
+          <a
+            class="page-link"
+            href="?page=1{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}"
+            >First</a
+          >
         </li>
-        
+        <li class="page-item">
+          <a
+            class="page-link"
+            href="?page={{ process_bill_history.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}"
+            >Previous</a
+          >
+        </li>
+        {% endif %}
+
+        <li class="page-item disabled">
+          <span class="page-link"
+            >Page {{ process_bill_history.number }} of {{ process_bill_history.paginator.num_pages }}</span
+          >
+        </li>
+
         {% if process_bill_history.has_next %}
-          <li class="page-item">
-            <a class="page-link" href="?page={{ process_bill_history.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">Next</a>
-          </li>
-          <li class="page-item">
-            <a class="page-link" href="?page={{ process_bill_history.paginator.num_pages }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">Last</a>
-          </li>
+        <li class="page-item">
+          <a
+            class="page-link"
+            href="?page={{ process_bill_history.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}"
+            >Next</a
+          >
+        </li>
+        <li class="page-item">
+          <a
+            class="page-link"
+            href="?page={{ process_bill_history.paginator.num_pages }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}"
+            >Last</a
+          >
+        </li>
         {% endif %}
       </ul>
     </nav>
